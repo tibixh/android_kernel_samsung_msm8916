@@ -37,6 +37,10 @@ dtb-$(CONFIG_ARCH_MSMFERRUM) += msmferrum-sim.dtb \
 	msmferrum-1gb-cdp.dtb \
 	msmferrum-1gb-mtp.dtb
 ifeq ($(CONFIG_ARCH_MSM8916),y)
+	ifeq ($(CONFIG_SEC_HEAT_PROJECT),y)
+		dtb-y += msm8916-sec-heat-r00.dtb
+		dtb-y += msm8916-sec-heat-r02.dtb
+	endif
 	ifeq ($(CONFIG_SEC_A5_EUR_PROJECT),y)
 		dtb-y += msm8916-sec-a5-eur-r02.dtb
 		dtb-y += msm8916-sec-a5-eur-r03.dtb
