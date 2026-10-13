@@ -32,6 +32,8 @@
 #define USE_TSP_TA_CALLBACKS
 #elif defined(CONFIG_SEC_J5X_PROJECT)
 #define USE_TSP_TA_CALLBACKS
+#elif defined(CONFIG_TOUCHSCREEN_CYTTSP4)
+#define USE_TSP_TA_CALLBACKS
 
 
 #else	/* default */
