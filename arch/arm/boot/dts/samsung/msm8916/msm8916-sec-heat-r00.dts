@@ -12,7 +12,7 @@
 
 /dts-v1/;
 
-#include "msm8916-sec-fortuna-r10.dtsi"
+#include "msm8916-sec-heat-r00.dtsi"
 #include "msm8916-memory.dtsi"
 
 / {
