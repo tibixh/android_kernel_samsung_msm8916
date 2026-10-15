@@ -14,7 +14,7 @@
 #include "msm8916-pinctrl-sec-heat-r00.dtsi"
 #include "msm8916-camera.dtsi"
 #include "msm8916-camera-sensor-cdp-heat-r00.dtsi"
-#include "dsi-panel-samsung-wvga-video.dtsi"
+#include "../../../../drivers/video/msm/mdss/samsung/S6E88A0_SS_WVGA/dsi_panel_S6E88A0_SS_WVGA_wvga_video.dtsi"
 #include "msm8916-sec-heat-battery-r00.dtsi"
 
 / {
@@ -567,6 +567,60 @@
 	pinctrl-1 = <&mdss_dsi_suspend &lcd_esd_det_suspend>;
 	qcom,platform-reset-gpio = <&msm_gpio 25 0>;
 	qcom,platform-enable-gpio = <&msm_gpio 102 0>;
+
+	gdsc-supply = <&gdsc_mdss>;
+	vddio-supply = <&pm8916_l6>;
+	vdda-supply = <&pm8916_l2>;
+
+	qcom,platform-strength-ctrl = [ff 06];
+	qcom,platform-bist-ctrl = [00 00 b1 ff 00 00];
+	qcom,platform-regulator-settings = [07 09 03 00 20 00 01];
+	qcom,platform-lane-config = [00 00 00 00 00 00 00 01 97
+		00 00 00 00 05 00 00 01 97
+		00 00 00 00 0a 00 00 01 97
+		00 00 00 00 0f 00 00 01 97
+		00 c0 00 00 00 00 00 01 bb];
+
+	qcom,core-supply-entries {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		qcom,core-supply-entry@0 {
+			reg = <0>;
+			qcom,supply-name = "gdsc";
+			qcom,supply-min-voltage = <0>;
+			qcom,supply-max-voltage = <0>;
+			qcom,supply-enable-load = <0>;
+			qcom,supply-disable-load = <0>;
+		};
+	};
+	qcom,ctrl-supply-entries {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		qcom,ctrl-supply-entry@0 {
+			reg = <0>;
+			qcom,supply-name = "vdda";
+			qcom,supply-min-voltage = <1200000>;
+			qcom,supply-max-voltage = <1200000>;
+			qcom,supply-enable-load = <100000>;
+			qcom,supply-disable-load = <100>;
+			qcom,supply-post-on-sleep = <0>;
+		};
+	};
+	qcom,panel-supply-entries {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		qcom,panel-supply-entry@0 {
+			reg = <0>;
+			qcom,supply-name = "vddio";
+			qcom,supply-min-voltage = <1800000>;
+			qcom,supply-max-voltage = <1800000>;
+			qcom,supply-enable-load = <100000>;
+			qcom,supply-disable-load = <100>;
+		};
+	};
 };
 
 &qcom_tzlog {
