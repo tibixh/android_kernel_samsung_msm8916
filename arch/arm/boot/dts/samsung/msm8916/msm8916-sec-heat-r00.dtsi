@@ -307,6 +307,8 @@
 			pinctrl-0 = <&i2c_0_active>;
 			stm,reg_vdd = "8916_l17";
 			stm,reg_vio = "8916_l6";
+			stm,vdd-supply = <&pm8916_l17>;
+			stm,vio-supply = <&pm8916_l6>;
 			stm,axis_map_x = <1>;
 			stm,axis_map_y = <0>;
 			stm,axis_map_z = <2>;
@@ -543,6 +545,7 @@
 			regulator-min-microvolt = <3000000>;
 			regulator-max-microvolt = <3000000>;
 			qcom,init-voltage = <3000000>;
+			regulator-always-on;
 			status = "okay";
 		};
 	};
