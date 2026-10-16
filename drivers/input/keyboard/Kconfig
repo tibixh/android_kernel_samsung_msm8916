@@ -802,4 +802,6 @@ config KEYBOARD_TC350K
 	help
 	 Say Y if you want use Coreriver TC350K chip as touchkey.
 
+source "drivers/input/keyboard/cypress_touchkey/Kconfig"
+
 endif

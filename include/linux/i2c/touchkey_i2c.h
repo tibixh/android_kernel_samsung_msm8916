@@ -109,6 +109,7 @@ extern int poweroff_charging;
 #define TK_BIT_CMD_REGULAR	0x01    /* regular mode = normal mode */
 
 #define TK_BIT_WRITE_CONFIRM	0xAA
+#define TK_BIT_EXIT_CONFIRM	0xBB
 
 /* STATUS FLAG */
 #if defined(CONFIG_KEYBOARD_CYPRESS_TOUCHKEY_H) || defined (CONFIG_KEYBOARD_CYPRESS_TOUCHKEY_C) || defined (CONFIG_KEYBOARD_CYPRESS_TOUCHKEY_HE)
@@ -202,6 +203,8 @@ enum {
 #define TKEY_CYPRESS_FW_NAME		"berluti_cypress_tkey"
 #elif defined(CONFIG_SEC_KLIMT_PROJECT)
 #define TKEY_CYPRESS_FW_NAME		"klimt_cypress_tkey"
+#elif defined(CONFIG_SEC_HEAT_PROJECT)
+#define TKEY_CYPRESS_FW_NAME		"heat_cypress_tkey"
 #else
 #define TKEY_CYPRESS_FW_NAME		"hlte_cypress_tkey"
 #endif
@@ -294,6 +297,7 @@ struct cypress_touchkey_info {
 	bool is_powering_on;
 	bool enabled;
 	bool done_ta_setting;
+	bool irq_enable;
 
 #ifdef TKEY_FLIP_MODE
 	bool enabled_flip;
@@ -320,8 +324,12 @@ struct cypress_touchkey_info {
 	const struct firmware		*fw;	
 	struct fw_image	*fw_img;
 	u8	cur_fw_path;
+	const u8 *fw_data;
+	int fw_size;
 #endif
+	int (*power)(struct device *dev, bool on);
 	int	src_fw_ver;
+	int	src_md_ver;
 	int	ic_fw_ver;
 	int	module_ver;
 	int	device_ver;	
@@ -349,7 +357,8 @@ extern struct cypress_touchkey_platform_data *g_pdata;
 #define GPIO_TOUCHKEY_SDA	16
 #define GPIO_TOUCHKEY_SCL	17
 #define PMIC_GPIO_TKEY_INT	112
-
-extern void cypress_power_onoff(struct cypress_touchkey_info *info, int onoff);
+#if !defined(CONFIG_KEYBOARD_CYPRESS_TOUCHKEY)
+	extern void cypress_power_onoff(struct cypress_touchkey_info *info, int onoff);
+#endif
 #endif /* __LINUX_CYPRESS_TOUCHKEY_H */
 
