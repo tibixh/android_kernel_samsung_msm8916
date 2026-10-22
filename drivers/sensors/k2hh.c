@@ -630,9 +630,11 @@ static void k2hh_work_func(struct work_struct *work)
 	int ret;
 	struct k2hh_v acc;
 	struct k2hh_p *data = container_of(work, struct k2hh_p, work);
+#ifndef CONFIG_SENSORS_K2HH_LEGACY
 	struct timespec ts;
 	u64 timestamp_new;
 	int time_hi, time_lo;
+#endif
 
 	ret = k2hh_read_accel_xyz(data, &acc);
 	if (ret < 0)
@@ -656,12 +658,15 @@ static void k2hh_work_func(struct work_struct *work)
 #endif
 
 
+#ifndef CONFIG_SENSORS_K2HH_LEGACY
 	ts = ktime_to_timespec(ktime_get_boottime());
 	timestamp_new = ts.tv_sec * 1000000000ULL + ts.tv_nsec;
+#endif
 
 	data->accdata.x = acc.x - data->caldata.x;
 	data->accdata.y = acc.y - data->caldata.y;
 	data->accdata.z = acc.z - data->caldata.z;
+#ifndef CONFIG_SENSORS_K2HH_LEGACY
 	if (data->old_timestamp != 0 &&
 		((timestamp_new - data->old_timestamp) > ktime_to_ms(data->poll_delay) * 1800000LL)) {
 		u64 delay = ktime_to_ns(data->poll_delay);
@@ -681,13 +686,18 @@ static void k2hh_work_func(struct work_struct *work)
 
 	time_hi = (int)((timestamp_new & TIME_HI_MASK) >> TIME_HI_SHIFT);
 	time_lo = (int)(timestamp_new & TIME_LO_MASK);
+#endif
 	input_report_rel(data->input, REL_X, data->accdata.x);
 	input_report_rel(data->input, REL_Y, data->accdata.y);
 	input_report_rel(data->input, REL_Z, data->accdata.z);
+#ifndef CONFIG_SENSORS_K2HH_LEGACY
 	input_report_rel(data->input, REL_DIAL, time_hi);
 	input_report_rel(data->input, REL_MISC, time_lo);
+#endif
 	input_sync(data->input);
+#ifndef CONFIG_SENSORS_K2HH_LEGACY
 	data->old_timestamp = timestamp_new;
+#endif
 
 exit:
 	if ((ktime_to_ns(data->poll_delay) * (int64_t)data->time_count)
@@ -731,7 +741,11 @@ static ssize_t k2hh_enable_store(struct device *dev,
 #endif
 			data->old_timestamp = 0LL;
 			k2hh_open_calibration(data);
+#ifdef CONFIG_SENSORS_K2HH_LEGACY
+			k2hh_set_range(data, K2HH_RANGE_2G);
+#else
 			k2hh_set_range(data, K2HH_RANGE_4G);
+#endif
 			k2hh_set_bw(data);
 
 			k2hh_set_mode(data, K2HH_MODE_NORMAL);

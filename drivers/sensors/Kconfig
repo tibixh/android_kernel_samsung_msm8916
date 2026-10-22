@@ -42,6 +42,15 @@ config SENSORS_K2HH_VDD
 	  This option enables accelerometer sensors using
 	  STMicroelectronic K2HH device driver with VDD control.
 
+config SENSORS_K2HH_LEGACY
+	depends on SENSORS_K2HH
+	bool "SENSORS_K2HH_LEGACY"
+	default n
+	help
+	  Say Y here to restrict the K2HH accelerometer to the 2G range and
+	  use the legacy event format (no timestamp via REL_DIAL/REL_MISC)
+	  for compatibility with older sensor HALs.
+
 config SENSORS_K303C
 	depends on I2C
 	tristate "ST K303C accel,magnetic combo"
