@@ -436,7 +436,19 @@ static long audio_cal_shared_ioctl(struct file *file, unsigned int cmd,
 			__func__);
 		ret = -EFAULT;
 		goto done;
-	} else if ((data->hdr.cal_type < 0) ||
+	}
+
+#ifdef CONFIG_SEC_HEAT_PROJECT
+	/*
+	 * The heatqlte ACDB userspace loader was built against the pre-LSM
+	 * calibration enum. LSM_CUST_TOPOLOGY and LSM_TOPOLOGY were inserted
+	 * at indices 23 and 24, so translate the legacy types by two.
+	 */
+	if (data->hdr.cal_type >= 23 && data->hdr.cal_type <= 33)
+		data->hdr.cal_type += 2;
+#endif
+
+	if ((data->hdr.cal_type < 0) ||
 		(data->hdr.cal_type >= MAX_CAL_TYPES)) {
 		pr_err("%s: cal type %d is Invalid!\n",
 			__func__, data->hdr.cal_type);
