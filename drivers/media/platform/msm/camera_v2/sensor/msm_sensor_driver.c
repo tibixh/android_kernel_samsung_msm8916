@@ -479,6 +479,10 @@ int32_t msm_sensor_driver_probe(void *setting)
 		s_ctrl->func_tbl = &sr352_sensor_func_tbl ;
 	}
 #endif
+#if defined(CONFIG_SR130PC20) && !defined(CONFIG_SR352)
+	if (slave_info->camera_id == CAMERA_2)
+		s_ctrl->func_tbl = &sr130pc20_sensor_func_tbl;
+#endif
 #if defined(CONFIG_SR200PC20)
 	if(slave_info->camera_id == CAMERA_2){
 		s_ctrl->func_tbl = &sr200pc20_sensor_func_tbl ;

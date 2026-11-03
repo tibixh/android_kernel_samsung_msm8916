@@ -651,6 +651,18 @@ int msm_isp_request_axi_stream(struct vfe_device *vfe_dev, void *arg)
 
 	if (stream_info->stream_src < RDI_INTF_0) {
 		io_format = vfe_dev->axi_data.src_info[VFE_PIX_0].input_format;
+#if defined(CONFIG_SEC_HEAT_PROJECT)
+		/*
+		 * heatqlte's KitKat userspace can skip
+		 * VIDIOC_MSM_ISP_INPUT_CFG before the first preview stream.
+		 * The sensors are YUV (UYVY); use that when unset.
+		 */
+		if (io_format == 0) {
+			io_format = V4L2_PIX_FMT_UYVY;
+			vfe_dev->axi_data.src_info[VFE_PIX_0].input_format =
+				io_format;
+		}
+#endif
 		if (stream_info->stream_src == CAMIF_RAW ||
 			stream_info->stream_src == IDEAL_RAW) {
 			if (stream_info->stream_src == CAMIF_RAW &&

@@ -71,6 +71,10 @@ extern int32_t sm5703_fled_set_preflash(struct sm_fled_info *info);
 #endif
 #endif
 
+#if defined(CONFIG_FLED_RT5033_EXT_GPIO) && !defined(CONFIG_FLED_SM5703_EXT_GPIO)
+static int led_prev_mode = 0;
+#endif
+
 static enum flash_type flashtype;
 static struct msm_led_flash_ctrl_t fctrl;
 #ifdef CONFIG_FLED_RT5033_EXT_GPIO
@@ -768,7 +772,7 @@ static struct msm_flash_fn_t msm_led_trigger_func_tbl = {
 static struct msm_led_flash_ctrl_t fctrl = {
 	.func_tbl = &msm_led_trigger_func_tbl,
 };
-#if defined(CONFIG_FLED_SM5703)
+#if defined(CONFIG_FLED_SM5703) || defined(CONFIG_FLED_RT5033_EXT_GPIO)
 int set_led_flash(int mode)
 {
     struct msm_camera_led_cfg_t cfg;

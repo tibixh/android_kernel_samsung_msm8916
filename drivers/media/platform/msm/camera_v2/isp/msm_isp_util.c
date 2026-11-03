@@ -502,6 +502,95 @@ int msm_isp_cfg_input(struct vfe_device *vfe_dev, void *arg)
 	return rc;
 }
 
+/*
+ * KitKat camera userspace uses the pre-frame_id msm_vfe_cfg_cmd2 layout.
+ * heatqlte ships KitKat blobs, so accept the old VIDIOC_MSM_VFE_REG_CFG
+ * command and translate it to the current structure.
+ */
+struct msm_vfe_cfg_cmd2_kk {
+	uint16_t num_cfg;
+	uint16_t cmd_len;
+	void __user *cfg_data;
+	void __user *cfg_cmd;
+};
+
+#define VIDIOC_MSM_VFE_REG_CFG_KK \
+	_IOWR('V', BASE_VIDIOC_PRIVATE, struct msm_vfe_cfg_cmd2_kk)
+
+static int msm_isp_proc_cmd_kk(struct vfe_device *vfe_dev, void *arg)
+{
+	struct msm_vfe_cfg_cmd2_kk *kk = arg;
+	struct msm_vfe_cfg_cmd2 cfg;
+
+	cfg.num_cfg = kk->num_cfg;
+	cfg.cmd_len = kk->cmd_len;
+	cfg.frame_id = 0;
+	cfg.cfg_data = kk->cfg_data;
+	cfg.cfg_cmd = kk->cfg_cmd;
+
+	return msm_isp_proc_cmd(vfe_dev, &cfg);
+}
+
+/* KitKat msm_vfe_camif_cfg has no trailing subsample_cfg. */
+struct msm_vfe_camif_cfg_kk {
+	uint32_t lines_per_frame;
+	uint32_t pixels_per_line;
+	uint32_t first_pixel;
+	uint32_t last_pixel;
+	uint32_t first_line;
+	uint32_t last_line;
+	uint32_t epoch_line0;
+	uint32_t epoch_line1;
+	enum msm_vfe_camif_input camif_input;
+};
+
+struct msm_vfe_pix_cfg_kk {
+	struct msm_vfe_camif_cfg_kk camif_cfg;
+	enum msm_vfe_inputmux input_mux;
+	enum ISP_START_PIXEL_PATTERN pixel_pattern;
+	uint32_t input_format;
+};
+
+struct msm_vfe_rdi_cfg_kk {
+	uint8_t cid;
+	uint8_t frame_based;
+};
+
+struct msm_vfe_input_cfg_kk {
+	union {
+		struct msm_vfe_pix_cfg_kk pix_cfg;
+		struct msm_vfe_rdi_cfg_kk rdi_cfg;
+	} d;
+	enum msm_vfe_input_src input_src;
+	uint32_t input_pix_clk;
+};
+
+#define VIDIOC_MSM_ISP_INPUT_CFG_KK \
+	_IOWR('V', BASE_VIDIOC_PRIVATE+7, struct msm_vfe_input_cfg_kk)
+
+static int msm_isp_cfg_input_kk(struct vfe_device *vfe_dev, void *arg)
+{
+	struct msm_vfe_input_cfg_kk *kk = arg;
+	struct msm_vfe_input_cfg cfg;
+
+	memset(&cfg, 0, sizeof(cfg));
+	if (kk->input_src == VFE_PIX_0) {
+		memcpy(&cfg.d.pix_cfg.camif_cfg,
+			&kk->d.pix_cfg.camif_cfg,
+			sizeof(kk->d.pix_cfg.camif_cfg));
+		cfg.d.pix_cfg.input_mux = kk->d.pix_cfg.input_mux;
+		cfg.d.pix_cfg.pixel_pattern = kk->d.pix_cfg.pixel_pattern;
+		cfg.d.pix_cfg.input_format = kk->d.pix_cfg.input_format;
+	} else {
+		cfg.d.rdi_cfg.cid = kk->d.rdi_cfg.cid;
+		cfg.d.rdi_cfg.frame_based = kk->d.rdi_cfg.frame_based;
+	}
+	cfg.input_src = kk->input_src;
+	cfg.input_pix_clk = kk->input_pix_clk;
+
+	return msm_isp_cfg_input(vfe_dev, &cfg);
+}
+
 static long msm_isp_ioctl_unlocked(struct v4l2_subdev *sd,
 	unsigned int cmd, void *arg)
 {
@@ -519,6 +608,12 @@ static long msm_isp_ioctl_unlocked(struct v4l2_subdev *sd,
 	case VIDIOC_MSM_VFE_REG_CFG: {
 		mutex_lock(&vfe_dev->realtime_mutex);
 		rc = msm_isp_proc_cmd(vfe_dev, arg);
+		mutex_unlock(&vfe_dev->realtime_mutex);
+		break;
+	}
+	case VIDIOC_MSM_VFE_REG_CFG_KK: {
+		mutex_lock(&vfe_dev->realtime_mutex);
+		rc = msm_isp_proc_cmd_kk(vfe_dev, arg);
 		mutex_unlock(&vfe_dev->realtime_mutex);
 		break;
 	}
@@ -554,6 +649,11 @@ static long msm_isp_ioctl_unlocked(struct v4l2_subdev *sd,
 	case VIDIOC_MSM_ISP_INPUT_CFG:
 		mutex_lock(&vfe_dev->core_mutex);
 		rc = msm_isp_cfg_input(vfe_dev, arg);
+		mutex_unlock(&vfe_dev->core_mutex);
+		break;
+	case VIDIOC_MSM_ISP_INPUT_CFG_KK:
+		mutex_lock(&vfe_dev->core_mutex);
+		rc = msm_isp_cfg_input_kk(vfe_dev, arg);
 		mutex_unlock(&vfe_dev->core_mutex);
 		break;
 	case VIDIOC_MSM_ISP_REG_UPDATE_CMD:

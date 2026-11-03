@@ -596,6 +596,21 @@ static int __msm_close_destry_session_notify_apps(void *d1, void *d2)
 	return 0;
 }
 
+/*
+ * KitKat camera userspace passes a full struct v4l2_event to the
+ * NOTIFY/CMD_ACK ioctls, with msm_v4l2_event_data embedded in u.data.
+ * The current ABI passes msm_v4l2_event_data directly.  heatqlte ships
+ * KitKat blobs, so accept the old commands too.
+ */
+#define MSM_CAM_V4L2_IOCTL_NOTIFY_KK \
+	_IOW('V', BASE_VIDIOC_PRIVATE + 30, struct v4l2_event)
+#define MSM_CAM_V4L2_IOCTL_NOTIFY_META_KK \
+	_IOW('V', BASE_VIDIOC_PRIVATE + 31, struct v4l2_event)
+#define MSM_CAM_V4L2_IOCTL_CMD_ACK_KK \
+	_IOW('V', BASE_VIDIOC_PRIVATE + 32, struct v4l2_event)
+#define MSM_CAM_V4L2_IOCTL_NOTIFY_ERROR_KK \
+	_IOW('V', BASE_VIDIOC_PRIVATE + 33, struct v4l2_event)
+
 static long msm_private_ioctl(struct file *file, void *fh,
 	bool valid_prio, unsigned int cmd, void *arg)
 {
@@ -613,6 +628,13 @@ static long msm_private_ioctl(struct file *file, void *fh,
 			wake_up(&cam_dummy_queue.state_wait);
 		return rc;
 	}
+
+	if (cmd == MSM_CAM_V4L2_IOCTL_NOTIFY_KK ||
+	    cmd == MSM_CAM_V4L2_IOCTL_NOTIFY_META_KK ||
+	    cmd == MSM_CAM_V4L2_IOCTL_CMD_ACK_KK ||
+	    cmd == MSM_CAM_V4L2_IOCTL_NOTIFY_ERROR_KK)
+		event_data = (struct msm_v4l2_event_data *)
+			((struct v4l2_event *)arg)->u.data;
 
 	session_id = event_data->session_id;
 	stream_id = event_data->stream_id;
@@ -635,6 +657,17 @@ static long msm_private_ioctl(struct file *file, void *fh,
 			sizeof(struct msm_v4l2_event_data));
 		v4l2_event_queue(session->event_q.vdev,
 			&event);
+	}
+		break;
+
+	case MSM_CAM_V4L2_IOCTL_NOTIFY_KK:
+	case MSM_CAM_V4L2_IOCTL_NOTIFY_META_KK: {
+		if (WARN_ON(!session->event_q.vdev)) {
+			rc = -EFAULT;
+			break;
+		}
+		v4l2_event_queue(session->event_q.vdev,
+			(struct v4l2_event *)arg);
 	}
 		break;
 
@@ -672,7 +705,38 @@ static long msm_private_ioctl(struct file *file, void *fh,
 	}
 		break;
 
+	case MSM_CAM_V4L2_IOCTL_CMD_ACK_KK: {
+		struct msm_command_ack *cmd_ack;
+		struct msm_command *ret_cmd;
+
+		ret_cmd = kzalloc(sizeof(*ret_cmd), GFP_KERNEL);
+		if (!ret_cmd) {
+			rc = -ENOMEM;
+			break;
+		}
+
+		cmd_ack = msm_queue_find(&session->command_ack_q,
+			struct msm_command_ack, list,
+			__msm_queue_find_command_ack_q,
+			&stream_id);
+		if (WARN_ON(!cmd_ack)) {
+			kzfree(ret_cmd);
+			rc = -EFAULT;
+			break;
+		}
+
+		spin_lock_irqsave(&(session->command_ack_q.lock),
+		   spin_flags);
+		ret_cmd->event = *(struct v4l2_event *)arg;
+		msm_enqueue(&cmd_ack->command_q, &ret_cmd->list);
+		complete(&cmd_ack->wait_complete);
+		spin_unlock_irqrestore(&(session->command_ack_q.lock),
+		   spin_flags);
+	}
+		break;
+
 	case MSM_CAM_V4L2_IOCTL_NOTIFY_ERROR:
+	case MSM_CAM_V4L2_IOCTL_NOTIFY_ERROR_KK:
 		/* send v4l2_event to HAL next*/
 		msm_queue_traverse_action(msm_session_q,
 			struct msm_session, list,

@@ -714,6 +714,45 @@ static int msm_sensor_get_af_status(struct msm_sensor_ctrl_t *s_ctrl,
 	return 0;
 }
 
+/*
+ * Samsung's KitKat (4.4.4) camera userspace uses the pre-flicker_type
+ * sensorb_cfg_data layout: the cfg union follows cfgtype directly.  The
+ * current header has an extra int flicker_type in between, which changes
+ * the ioctl number (_IOWR encodes the struct size).  heatqlte ships KitKat
+ * blobs, so accept the old command and translate to the current layout.
+ */
+struct sensorb_cfg_data_kk {
+	int cfgtype;
+	union {
+		struct msm_sensor_info_t      sensor_info;
+		struct msm_sensor_init_params sensor_init_params;
+		void                         *setting;
+	} cfg;
+};
+
+#define VIDIOC_MSM_SENSOR_CFG_KK \
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 1, struct sensorb_cfg_data_kk)
+
+static long msm_sensor_config_kk(struct msm_sensor_ctrl_t *s_ctrl,
+			void __user *argp)
+{
+	struct sensorb_cfg_data_kk *kk = (struct sensorb_cfg_data_kk *)argp;
+	struct sensorb_cfg_data cfg;
+	int32_t rc;
+
+	memset(&cfg, 0, sizeof(cfg));
+	cfg.cfgtype = kk->cfgtype;
+	/* The KitKat daemon has no flicker field; stock heatqlte used 50 Hz. */
+	cfg.flicker_type = MSM_CAM_FLICKER_50HZ;
+	memcpy(&cfg.cfg, &kk->cfg, sizeof(cfg.cfg));
+
+	rc = s_ctrl->func_tbl->sensor_config(s_ctrl, (void __user *)&cfg);
+	if (!rc)
+		memcpy(&kk->cfg, &cfg.cfg, sizeof(kk->cfg));
+
+	return rc;
+}
+
 static long msm_sensor_subdev_ioctl(struct v4l2_subdev *sd,
 			unsigned int cmd, void *arg)
 {
@@ -726,6 +765,8 @@ static long msm_sensor_subdev_ioctl(struct v4l2_subdev *sd,
 	switch (cmd) {
 	case VIDIOC_MSM_SENSOR_CFG:
 		return s_ctrl->func_tbl->sensor_config(s_ctrl, argp);
+	case VIDIOC_MSM_SENSOR_CFG_KK:
+		return msm_sensor_config_kk(s_ctrl, argp);
 	case VIDIOC_MSM_SENSOR_GET_AF_STATUS:
 		return msm_sensor_get_af_status(s_ctrl, argp);
 	case VIDIOC_MSM_SENSOR_RELEASE:
