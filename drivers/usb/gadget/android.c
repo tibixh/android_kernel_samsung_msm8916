@@ -3480,6 +3480,8 @@ static ssize_t enable_store(struct device *pdev, struct device_attribute *attr,
 		strncpy(product_string, "Samsung Galaxy Tab E",
 #elif defined(CONFIG_SEC_J5_PROJECT) || defined(CONFIG_SEC_J5N_PROJECT) || defined(CONFIG_SEC_J5X_PROJECT)
 		strncpy(product_string, "Samsung Galaxy J5",
+#elif defined(CONFIG_SEC_HEAT_PROJECT)
+		strncpy(product_string, "Samsung Galaxy Ace 4",
 #else
 		strncpy(product_string, "SAMSUNG_Android",
 #endif
@@ -3511,6 +3513,8 @@ static ssize_t enable_store(struct device *pdev, struct device_attribute *attr,
 		strncpy(product_string, "Samsung Galaxy Tab E", sizeof(product_string) - 1);
 #elif defined(CONFIG_SEC_J5_PROJECT) || defined(CONFIG_SEC_J5N_PROJECT) || defined(CONFIG_SEC_J5X_PROJECT)
 		strncpy(product_string, "Samsung Galaxy J5", sizeof(product_string) - 1);
+#elif defined(CONFIG_SEC_HEAT_PROJECT)
+		strncpy(product_string, "Samsung Galaxy Ace 4", sizeof(product_string) -1);
 #else
 		strncpy(product_string, "SAMSUNG_Android", sizeof(product_string) - 1);
 #endif
